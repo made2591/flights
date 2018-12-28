@@ -271,17 +271,35 @@ if __name__ == '__main__':
 	# markets = ssms.list_markets('en-US').body
 	# pprint.pprint(markets)
 
-	curriencies = ssms.curriencies().body
-	pprint.pprint(curriencies)
+	# curriencies = ssms.curriencies().body
+	# pprint.pprint(curriencies)
 
 	# session = ssms.create_session('IR', 'EUR', 'en-US', 'MUC-sky', 'DUB-sky', '2019-01-24', '2019-01-27').headers.headers
 	# session_key = session[3].split("/")[-1].replace("\r\n", "")
 	# results = ssms.poll_results(session_key).body
-	# print json.dumps(results)
+	# f = open("temp.json", "w")
+	# pprint.pprint(results)
+	# json.dump(results, f)
+	# f.close()
 
+	# results = json.loads(open("temp.json", "r").read())
+	# pprint.pprint(results)
 
-
-
+	reload = False
+	val = ['DUB-sky', 'BUD-sky', '2019-02-14', '2019-02-17']
+	mat = ['NUE-sky', 'BUD-sky', '2019-02-14', '2019-02-17']
+	both = [val, mat]
+	for u in both:
+		dump_name = "./output/" + '-'.join("%s" % x for x in [u[0], u[1], u[2], u[3]]) + ".json"
+		if reload:
+			session = ssms.create_session('IR', 'EUR', 'en-US', u[0], u[1], u[2], u[3]).headers.headers
+			session_key = session[3].split("/")[-1].replace("\r\n", "")
+			results = ssms.poll_results(session_key).body
+			f = open(dump_name, "w")
+			json.dump(results, f)
+			f.close()
+		results = json.loads(open(dump_name, "r").read())
+		pprint.pprint(results)
 
 
 
