@@ -1,2 +1,4 @@
 poster==0.8.1
+python-dateutil==2.7.5
+six==1.12.0
 Unirest==1.1.7

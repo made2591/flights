@@ -1,7 +1,10 @@
 import json
+import math
 import pprint
 import unirest
 from secrets import *
+from datetime import datetime
+from dateutil import parser
 
 BASE_URL  = "https://skyscanner-skyscanner-flight-search-v1.p.rapidapi.com/apiservices"
 
@@ -252,6 +255,62 @@ class SkyScanMySky(object):
 
 		return response
 
+	def parseResults(self, results):
+		itineraries = []
+		for itinerary in results['Itineraries']:
+			iter = {
+				"DepartureTime": None,
+				"ArrivalTime": None,
+				"Duration": None,
+				"Stops": None,
+				"Price": None,
+				"Company": None,
+				"FlighNumbers": None,
+				"TravelUtility": None
+			}
+			outboundLegID = itinerary['OutboundLegId']
+			inboundLegId = itinerary['InboundLegId']
+			for leg in results['Legs']:
+				if leg['Id'] == outboundLegID:
+					iter["DepartureTime"] = parser.parse(leg["Departure"])
+					iter["Duration"] = iter["Duration"]
+					iter["Stops"] = leg["PricingOptions"]
+					bestPrice = leg["Price"]
+					iter["TravelUtility"] = float(leg["Price"] * leg["Duration"].days * 24 * 60)
+					itineraries.append(iter)
+					break
+				if leg['Id'] == inboundLegId:
+					iter["ArrivalTime"] = parser.parse(leg["Arrival"])
+					iter["Duration"] = iter["Duration"]
+					iter["Stops"] = leg["Stops"]
+					bestPrice = leg["PricingOptions"]
+					iter["TravelUtility"] = float(leg["Price"] * leg["Duration"].days * 24 * 60)
+					itineraries.append(iter)
+					break
+
+		return itineraries
+
+	def plan(self, iter1, iter2):
+
+		sorted(iter1, key=travelUtility)
+		sorted(iter2, key=travelUtility)
+
+		for i1 in iter1:
+			for i2 in iter2:
+				print coupleUtility(i1, i2)
+
+	@staticmethod
+	def travelUtility(item):
+		return item["TravelUtility"]
+
+	@staticmethod
+	def coupleUtility(iter1, iter2):
+		offsetDepartureTime = math.abs(iter1["DepartureTime"]-iter2["DepartureTime"])
+		offsetArrivalTime   = math.abs(iter1["ArrivalTime"]-iter2["ArrivalTime"])
+
+		return ((offsetDepartureTime * iter1["TravelUtility"] + offsetDepartureTime * iter2["TravelUtility"]) / (iter1["TravelUtility"] + iter2["TravelUtility"])) + \
+				((offsetArrivalTime * iter1["TravelUtility"] + offsetArrivalTime * iter2["TravelUtility"]) / (iter1["TravelUtility"] + iter2["TravelUtility"]))
+
 if __name__ == '__main__':
 
 	ssms = SkyScanMySky(BASE_URL, RAPID_KEY)
@@ -289,7 +348,7 @@ if __name__ == '__main__':
 	val = ['DUB-sky', 'BUD-sky', '2019-02-14', '2019-02-17']
 	mat = ['NUE-sky', 'BUD-sky', '2019-02-14', '2019-02-17']
 	both = [val, mat]
-	for u in both:
+	for i, u in enumerate(both):
 		dump_name = "./output/" + '-'.join("%s" % x for x in [u[0], u[1], u[2], u[3]]) + ".json"
 		if reload:
 			session = ssms.create_session('IR', 'EUR', 'en-US', u[0], u[1], u[2], u[3]).headers.headers
@@ -299,9 +358,10 @@ if __name__ == '__main__':
 			json.dump(results, f)
 			f.close()
 		results = json.loads(open(dump_name, "r").read())
-		pprint.pprint(results)
+		both[i] = ssms.parseResults(results)
+		pprint.pprint(both[i])
 
-
+	# ssms.plan(both[0], both[1])
 
 
 
